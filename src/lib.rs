@@ -1,0 +1,162 @@
+//! Rust implementation of [The Remedian](https://www.researchgate.net/publication/247974442_The_Remedian_A_Robust_Averaging_Method_for_Large_Data_Sets),
+//! a robust method to calculate the median of a large dataset, without loading the entire thing in memory.
+//!
+//! The median is approximated by taking a large number of sample points.
+//! The exact number of collectable sample points is equal to `remedian_base ^ remedian_exponent`.
+//! However, the memory usage is proportional to only `remedian_base * remedian_exponent`.
+
+#![warn(missing_docs)]
+
+use std::cmp::Ordering;
+
+/// Current remedian state calculated for a data stream
+///
+/// The [`Self::new`] constructor creates the block in an initial state.
+/// Then, data points can be subsequently added with [`Self::add_sample_point`].
+/// The median can then be fetched at any time with [`Self::median`].
+///
+/// The maximum number of collectable sample points is equal to `remedian_base ^ remedian_exponent`.
+/// After this many points have been collected, the block will be **locked**, and [`Self::add_sample_point`] will be a no-op.
+#[derive(Debug, Clone)]
+pub struct RemedianBlock {
+    /// Base value to use for calculating the remedian
+    ///
+    /// This should always be an odd number, as it makes the calculation faster
+    remedian_base: usize,
+    /// Exponent value to use for calculating the remedian
+    remedian_exponent: usize,
+
+    /// Total data points
+    count: u64,
+
+    /// A [`Self::remedian_base`]*[`Self::remedian_exponent`] scratch matrix used for calculating the median
+    ///
+    /// A scratch matrix of this size gives us a sample size of [`Self::remedian_base`]^[`Self::remedian_exponent`]
+    remedian_scratch: Vec<Vec<f32>>,
+
+    /// Flag for whether the `remedian_scratch` is full
+    ///
+    /// After it's full, we can't collect any more sample points,
+    /// so we shouldn't try to push in any more.
+    locked: bool,
+}
+
+impl Default for RemedianBlock {
+    /// Initializes a remedian block with a base value of 11 and an exponent of 10.
+    ///
+    /// This is a reasonable default for most applications, and provides room for roughly 25 billion sample points.
+    fn default() -> Self {
+        Self::new(11, 10)
+    }
+}
+
+impl RemedianBlock {
+    /// Constructs a new [`Self`], without any sample points collected
+    ///
+    /// Inputs:
+    /// - `remedian_base`: Base value to use for the remedian. Must be odd.
+    /// - `remedian_exponent`: Exponent value to use for the remedian.
+    ///
+    /// See the struct-level docs for more information.
+    /// If you are unsure of what to use, [`Self::default`] provides reasonable defaults.
+    pub fn new(remedian_base: usize, remedian_exponent: usize) -> Self {
+        if remedian_base % 2 == 0 {
+            // TODO: Warn that the base is even
+        }
+
+        let mut remedian_scratch = Vec::with_capacity(remedian_exponent);
+        for _ in 0..remedian_exponent {
+            remedian_scratch.push(Vec::with_capacity(remedian_base));
+        }
+
+        Self {
+            remedian_base,
+            remedian_exponent,
+            count: 0,
+            remedian_scratch,
+            locked: false,
+        }
+    }
+
+    /// Whether the block is currently locked
+    ///
+    /// Locked blocks cannot collect any more sample points,
+    /// so calling [`Self::add_sample_point`] will be a no-op.
+    pub fn locked(&self) -> bool {
+        self.locked
+    }
+
+    /// Total number of sample points collected so far
+    pub fn count(&self) -> u64 {
+        self.count
+    }
+
+    /// Processes a new sample point in the stream, updating the rolling median
+    pub fn add_sample_point(&mut self, p: f32) {
+        if !self.locked {
+            self.count += 1;
+
+            self.remedian_scratch[0].push(p);
+
+            // Check each batch to see if it's full, carrying intermediate medians to the next batch until
+            // we either run out of space, or there's nothing left to carry
+            for i in 0..self.remedian_exponent {
+                let batch = &mut self.remedian_scratch[i];
+
+                if batch.len() == self.remedian_base {
+                    // Batch is full
+
+                    if i == self.remedian_exponent - 1 {
+                        // This is the last batch, so there's no where to carry to
+                        // Lock the scratch and call it a day
+
+                        batch.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
+                        self.locked = true;
+                    } else {
+                        // Not the last batch yet, so calculate the intermediate median,
+                        // carry it to the next batch, and empty the batch
+
+                        batch.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
+                        let intermediate_median = batch[self.remedian_base / 2];
+                        batch.clear();
+
+                        self.remedian_scratch[i + 1].push(intermediate_median);
+                    }
+                } else {
+                    // Nothing left to ripple carry, so we are done here
+                    break;
+                }
+            }
+        }
+    }
+
+    /// Gets the approxmate median of the data points processed
+    pub fn median(&self) -> f32 {
+        if self.locked {
+            // We filled our maximum samples, so just take the median of the final batch
+            // Note that it's sorted in `add_sample_point` above
+            self.remedian_scratch[self.remedian_exponent - 1][self.remedian_base / 2] as f32
+        } else {
+            // Not all the batches are full, so calculate a weighted median based on what we have
+
+            let mut weighted_values = Vec::new();
+            for (i, batch) in self.remedian_scratch.iter().enumerate() {
+                for m in batch.iter() {
+                    weighted_values.push((m, (self.remedian_base as u64).pow(i as u32)));
+                }
+            }
+
+            weighted_values.sort_by(|a, b| a.0.partial_cmp(b.0).unwrap_or(Ordering::Equal));
+
+            let mut running_weight = 0;
+            for (m, w) in weighted_values.into_iter() {
+                running_weight += w;
+                if running_weight >= (self.count / 2) {
+                    return *m;
+                }
+            }
+
+            unreachable!()
+        }
+    }
+}
