@@ -5,6 +5,7 @@ version = "0.1.0"
 authors = ["Rose Peck"]
 repository = "https://github.com/sixfold-origami/remedian"
 license = "MIT OR Apache-2.0"
+readme = "README.md"
 edition = "2021"
 keywords = ["median", "statistics"]
 
