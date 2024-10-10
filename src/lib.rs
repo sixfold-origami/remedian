@@ -55,13 +55,13 @@ impl RemedianBlock {
     /// If you are unsure of what to use, [`Self::default`] provides reasonable defaults.
     pub fn new(remedian_base: usize, remedian_exponent: usize) -> Self {
         if remedian_base % 2 == 0 {
-            #[cfg(feature = "log")]
+            #[cfg(feature = "logging")]
             log::warn!(
                 "Got even remedian base: {}. This will result in inaccuracies.",
                 remedian_base
             );
 
-            #[not(cfg(feature = "log"))]
+            #[cfg(not(feature = "logging"))]
             eprintln!(
                 "Got even remedian base: {}. This will result in inaccuracies.",
                 remedian_base
