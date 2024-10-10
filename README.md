@@ -38,6 +38,11 @@ As points are read in from the stream, each array is filled in turn:
 
 In this way, The Remedian can account for `b^k` sample points, while only using `b*k` space.
 
+## Crate features
+
+This crate has a single feature, which is enabled by default
+- **log**: Enables use of the [log](https://crates.io/crates/log) crate for warnings. If disabled, `eprintln!` is used instead
+
 ## Testing
 
 A sample file of 2000 randomly generated numbers can be found in `test_data/2000_values.txt`.

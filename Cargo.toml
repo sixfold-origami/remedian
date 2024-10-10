@@ -3,11 +3,16 @@ name = "remedian"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["log"]
+log = ["log"]
+
 [profile.release]
 codegen-units = 1
 lto = "fat"
 
 [dependencies]
+log = { version = "0.4.22", required = false }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

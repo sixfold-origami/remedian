@@ -55,7 +55,17 @@ impl RemedianBlock {
     /// If you are unsure of what to use, [`Self::default`] provides reasonable defaults.
     pub fn new(remedian_base: usize, remedian_exponent: usize) -> Self {
         if remedian_base % 2 == 0 {
-            // TODO: Warn that the base is even
+            #[cfg(feature = "log")]
+            log::warn!(
+                "Got even remedian base: {}. This will result in inaccuracies.",
+                remedian_base
+            );
+
+            #[not(cfg(feature = "log"))]
+            eprintln!(
+                "Got even remedian base: {}. This will result in inaccuracies.",
+                remedian_base
+            );
         }
 
         let mut remedian_scratch = Vec::with_capacity(remedian_exponent);
