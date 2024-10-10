@@ -148,7 +148,7 @@ impl RemedianBlock {
         if self.locked {
             // We filled our maximum samples, so just take the median of the final batch
             // Note that it's sorted in `add_sample_point` above
-            self.remedian_scratch[self.remedian_exponent - 1][self.remedian_base / 2] as f32
+            self.remedian_scratch[self.remedian_exponent - 1][self.remedian_base / 2]
         } else {
             // Not all the batches are full, so calculate a weighted median based on what we have
 
@@ -190,7 +190,7 @@ mod tests {
     const MEDIAN_ERROR_LIMIT: f32 = 3.0;
 
     fn load_test_data() -> Vec<f32> {
-        let mut data = Vec::with_capacity(1000);
+        let mut data = Vec::with_capacity(2000);
         let f = BufReader::new(File::open("./test_data/2000_values.txt").unwrap());
 
         for line in f.lines() {
