@@ -92,7 +92,9 @@ impl RemedianBlock {
     }
 
     /// Processes a new sample point in the stream, updating the rolling median
-    pub fn add_sample_point(&mut self, p: f32) {
+    ///
+    /// Returns whether the point was actually added
+    pub fn add_sample_point(&mut self, p: f32) -> bool {
         if !self.locked {
             self.count += 1;
 
@@ -127,6 +129,10 @@ impl RemedianBlock {
                     break;
                 }
             }
+
+            true
+        } else {
+            false
         }
     }
 

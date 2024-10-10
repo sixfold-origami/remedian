@@ -21,16 +21,24 @@ fn main() {
 
     // Read data points from our data source, and fold them into the remedian
     for data_point in DATA {
-        remedian.add_sample_point(data_point);
+        let was_added = remedian.add_sample_point(data_point);
 
-        // As we go, we can check the current number of total points processed
-        println!("Processed {} data points so far", remedian.count());
-        // We can also check if we have run out of space yet
+        // We can check if the point was added after each one
+        if was_added {
+            println!("Point was added");
+        } else {
+            println!("Point was not added: remedian is full");
+        }
+
+        // We can also check this manually
         if remedian.locked() {
             println!("Remedian is full: no further points can be processed");
         } else {
             println!("Remedian is not full");
         }
+
+        // As we go, we can check the current number of total points processed
+        println!("Processed {} data points so far", remedian.count());
     }
 
     // Once we've processed everything, we can get our answer out
