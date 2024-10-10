@@ -97,7 +97,6 @@ impl RemedianBlock {
     pub fn add_sample_point(&mut self, p: f32) -> bool {
         if !self.locked {
             self.count += 1;
-
             self.remedian_scratch[0].push(p);
 
             // Check each batch to see if it's full, carrying intermediate medians to the next batch until
@@ -137,7 +136,15 @@ impl RemedianBlock {
     }
 
     /// Gets the approxmate median of the data points processed
+    ///
+    /// If no data has been processed, this returns zero as a fallback
     pub fn median(&self) -> f32 {
+        if self.count == 0 {
+            // Degenerate case where no data has been processed
+            // Just return zero
+            return 0.;
+        }
+
         if self.locked {
             // We filled our maximum samples, so just take the median of the final batch
             // Note that it's sorted in `add_sample_point` above
@@ -258,5 +265,23 @@ mod tests {
         }
 
         assert_eq!(remedian.count(), 1331);
+    }
+
+    #[test]
+    fn no_data() {
+        let remedian = RemedianBlock::default();
+        assert_eq!(remedian.median(), 0.);
+        assert_eq!(remedian.count(), 0);
+        assert!(!remedian.locked())
+    }
+
+    #[test]
+    fn one_data() {
+        let mut remedian = RemedianBlock::default();
+        remedian.add_sample_point(10.);
+
+        assert_eq!(remedian.median(), 10.);
+        assert_eq!(remedian.count(), 1);
+        assert!(!remedian.locked())
     }
 }
