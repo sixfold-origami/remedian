@@ -29,7 +29,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 remedian.add_sample_point(*v);
             }
 
-            let _median = remedian.median();
+            let _median = remedian.median_or_default();
         })
     });
 
@@ -43,7 +43,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 };
             }
 
-            let _median = remedian.median();
+            let _median = remedian.median_or_default();
         })
     });
 }

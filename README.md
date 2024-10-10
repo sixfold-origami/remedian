@@ -16,7 +16,7 @@ for data_point in some_data_stream {
 let median = remedian.median();
 ```
 
-For more details, check out `examples/minimal.rs` or `examples/full.rs`
+For more details, check out `examples/minimal.rs`, `examples/full.rs`, or `examples/custom_data.rs`
 
 ## The Remedian
 
@@ -41,7 +41,7 @@ In this way, The Remedian can account for `b^k` sample points, while only using 
 ## Crate features
 
 This crate has a single feature, which is enabled by default
-- **log**: Enables use of the [log](https://crates.io/crates/log) crate for warnings. If disabled, `eprintln!` is used instead
+- **logging**: Enables use of the [log](https://crates.io/crates/log) crate for warnings. If disabled, `eprintln!` is used instead
 
 ## Testing
 

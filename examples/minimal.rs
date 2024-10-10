@@ -24,6 +24,6 @@ fn main() {
     }
 
     // Get our (approximate) answer
-    let median = remedian.median();
+    let median = remedian.median_or_default();
     println!("Approximated the median as: {median}");
 }

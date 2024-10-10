@@ -3,7 +3,7 @@
 
 use std::cmp::Ordering;
 
-/// Current remedian state calculated for a data stream
+/// Current remedian state calculated for a data stream with data of type `T`
 ///
 /// The [`Self::new`] constructor creates the block in an initial state.
 /// Then, data points can be subsequently added with [`Self::add_sample_point`].
@@ -12,7 +12,7 @@ use std::cmp::Ordering;
 /// The maximum number of collectable sample points is equal to `remedian_base ^ remedian_exponent`.
 /// After this many points have been collected, the block will be **locked**, and [`Self::add_sample_point`] will be a no-op.
 #[derive(Debug, Clone)]
-pub struct RemedianBlock {
+pub struct RemedianBlock<T: PartialOrd + Clone> {
     /// Base value to use for calculating the remedian
     ///
     /// This should always be an odd number, as it makes the calculation faster
@@ -26,7 +26,7 @@ pub struct RemedianBlock {
     /// A [`Self::remedian_base`]*[`Self::remedian_exponent`] scratch matrix used for calculating the median
     ///
     /// A scratch matrix of this size gives us a sample size of [`Self::remedian_base`]^[`Self::remedian_exponent`]
-    remedian_scratch: Vec<Vec<f32>>,
+    remedian_scratch: Vec<Vec<T>>,
 
     /// Flag for whether the `remedian_scratch` is full
     ///
@@ -35,7 +35,7 @@ pub struct RemedianBlock {
     locked: bool,
 }
 
-impl Default for RemedianBlock {
+impl<T: PartialOrd + Clone> Default for RemedianBlock<T> {
     /// Initializes a remedian block with a base value of 11 and an exponent of 10.
     ///
     /// This is a reasonable default for most applications, and provides room for roughly 25 billion sample points.
@@ -44,7 +44,7 @@ impl Default for RemedianBlock {
     }
 }
 
-impl RemedianBlock {
+impl<T: PartialOrd + Clone> RemedianBlock<T> {
     /// Constructs a new [`Self`], without any sample points collected
     ///
     /// Inputs:
@@ -98,10 +98,10 @@ impl RemedianBlock {
     /// Processes a new sample point in the stream, updating the rolling median
     ///
     /// Returns whether the point was actually added
-    pub fn add_sample_point(&mut self, p: f32) -> bool {
+    pub fn add_sample_point(&mut self, sample_point: T) -> bool {
         if !self.locked {
             self.count += 1;
-            self.remedian_scratch[0].push(p);
+            self.remedian_scratch[0].push(sample_point);
 
             // Check each batch to see if it's full, carrying intermediate medians to the next batch until
             // we either run out of space, or there's nothing left to carry
@@ -122,7 +122,7 @@ impl RemedianBlock {
                         // carry it to the next batch, and empty the batch
 
                         batch.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
-                        let intermediate_median = batch[self.remedian_base / 2];
+                        let intermediate_median = batch[self.remedian_base / 2].clone();
                         batch.clear();
 
                         self.remedian_scratch[i + 1].push(intermediate_median);
@@ -141,18 +141,14 @@ impl RemedianBlock {
 
     /// Gets the approxmate median of the data points processed
     ///
-    /// If no data has been processed, this returns zero as a fallback
-    pub fn median(&self) -> f32 {
-        if self.count == 0 {
-            // Degenerate case where no data has been processed
-            // Just return zero
-            return 0.;
-        }
-
+    /// If no data has been processed, this returns [`None`].
+    /// Otherwise, a value is always returned.
+    /// For an unchecked version, use [`Self::median_or_default`].
+    pub fn median(&self) -> Option<T> {
         if self.locked {
             // We filled our maximum samples, so just take the median of the final batch
             // Note that it's sorted in `add_sample_point` above
-            self.remedian_scratch[self.remedian_exponent - 1][self.remedian_base / 2]
+            Some(self.remedian_scratch[self.remedian_exponent - 1][self.remedian_base / 2].clone())
         } else {
             // Not all the batches are full, so calculate a weighted median based on what we have
 
@@ -169,12 +165,25 @@ impl RemedianBlock {
             for (m, w) in weighted_values.into_iter() {
                 running_weight += w;
                 if running_weight >= (self.count / 2) {
-                    return *m;
+                    return Some(m.clone());
                 }
             }
 
-            unreachable!()
+            // Degenerate case where no data has been processed
+            // Return None
+            None
         }
+    }
+}
+
+impl<T: PartialOrd + Clone + Default> RemedianBlock<T> {
+    /// Gets the approxmate median of the data points processed
+    ///
+    /// If no data has been processed, this returns `T::default()`.
+    /// Equivalent to calling [`Self::median()`]`.unwrap_or_default()`
+    #[inline]
+    pub fn median_or_default(&self) -> T {
+        self.median().unwrap_or_default()
     }
 }
 
@@ -213,7 +222,7 @@ mod tests {
             remedian.add_sample_point(v);
         }
 
-        assert!((remedian.median() - EXPECTED_MEDIAN).abs() < MEDIAN_ERROR_LIMIT);
+        assert!((remedian.median_or_default() - EXPECTED_MEDIAN).abs() < MEDIAN_ERROR_LIMIT);
     }
 
     #[test]
@@ -224,7 +233,7 @@ mod tests {
             remedian.add_sample_point(v);
         }
 
-        assert!((remedian.median() - EXPECTED_MEDIAN).abs() < MEDIAN_ERROR_LIMIT);
+        assert!((remedian.median_or_default() - EXPECTED_MEDIAN).abs() < MEDIAN_ERROR_LIMIT);
     }
 
     #[test]
@@ -273,8 +282,8 @@ mod tests {
 
     #[test]
     fn no_data() {
-        let remedian = RemedianBlock::default();
-        assert_eq!(remedian.median(), 0.);
+        let remedian = RemedianBlock::<f32>::default();
+        assert_eq!(remedian.median(), None);
         assert_eq!(remedian.count(), 0);
         assert!(!remedian.locked())
     }
@@ -284,7 +293,7 @@ mod tests {
         let mut remedian = RemedianBlock::default();
         remedian.add_sample_point(10.);
 
-        assert_eq!(remedian.median(), 10.);
+        assert_eq!(remedian.median(), Some(10.));
         assert_eq!(remedian.count(), 1);
         assert!(!remedian.locked())
     }
