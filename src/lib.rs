@@ -1,10 +1,4 @@
-//! Rust implementation of [The Remedian](https://www.researchgate.net/publication/247974442_The_Remedian_A_Robust_Averaging_Method_for_Large_Data_Sets),
-//! a robust method to calculate the median of a large dataset, without loading the entire thing in memory.
-//!
-//! The median is approximated by taking a large number of sample points.
-//! The exact number of collectable sample points is equal to `remedian_base ^ remedian_exponent`.
-//! However, the memory usage is proportional to only `remedian_base * remedian_exponent`.
-
+#![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
 use std::cmp::Ordering;

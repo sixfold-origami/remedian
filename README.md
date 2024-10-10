@@ -24,12 +24,14 @@ The Remedian algorithm is quite simple in concept.
 It stores `k` arrays of size `b`, (where `k` and `b` are hyperparameters).
 Here, we see an example with 4 arrays of size 11:
 
-![Figure 1](fig_1.png)
+![Image: figure 1 from the original paper, showing the four arrays with arrows pointing from one array to the next](fig_1.png)
+
+*Figure 1 from [the original paper](https://www.researchgate.net/publication/247974442_The_Remedian_A_Robust_Averaging_Method_for_Large_Data_Sets)*
 
 As points are read in from the stream, each array is filled in turn:
 1. The first 11 sample points fill the first array
 2. The median is calculated for array 1, and this intermediate median is stored in the first cell of array 2
-3. The next 11 sample points re-fill the first array
+3. The next 11 sample points refill the first array (retaining the allocation)
 4. The median is again calculated for array 1, and this new intermediate median is stored in the second cell of array 2
 5. This process continues, progressively filling each array, until the final array is completely full of data
 6. Then, the median of the final array is calculated and returned
