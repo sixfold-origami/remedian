@@ -166,3 +166,97 @@ impl RemedianBlock {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        fs::File,
+        io::{BufRead, BufReader},
+    };
+
+    use super::*;
+
+    /// Expected median value for the 2000_values test dataset
+    const EXPECTED_MEDIAN: f32 = 500.5;
+
+    /// The approximated median must be within this value of the [`EXPECTED_MEDIAN`] to be considered correct
+    const MEDIAN_ERROR_LIMIT: f32 = 3.0;
+
+    fn load_test_data() -> Vec<f32> {
+        let mut data = Vec::with_capacity(1000);
+        let f = BufReader::new(File::open("./test_data/2000_values.txt").unwrap());
+
+        for line in f.lines() {
+            let v: f32 = line.unwrap().parse().unwrap();
+            data.push(v);
+        }
+
+        data
+    }
+
+    #[test]
+    fn median_not_full() {
+        let mut remedian = RemedianBlock::default();
+
+        for v in load_test_data().into_iter() {
+            remedian.add_sample_point(v);
+        }
+
+        assert!((remedian.median() - EXPECTED_MEDIAN).abs() < MEDIAN_ERROR_LIMIT);
+    }
+
+    #[test]
+    fn median_full() {
+        let mut remedian = RemedianBlock::new(11, 3);
+
+        for v in load_test_data().into_iter() {
+            remedian.add_sample_point(v);
+        }
+
+        assert!((remedian.median() - EXPECTED_MEDIAN).abs() < MEDIAN_ERROR_LIMIT);
+    }
+
+    #[test]
+    fn locked_not_full() {
+        let mut remedian = RemedianBlock::default();
+
+        for v in load_test_data().into_iter() {
+            remedian.add_sample_point(v);
+        }
+
+        assert!(!remedian.locked());
+    }
+
+    #[test]
+    fn locked_full() {
+        let mut remedian = RemedianBlock::new(11, 3);
+
+        for v in load_test_data().into_iter() {
+            remedian.add_sample_point(v);
+        }
+
+        assert!(remedian.locked());
+    }
+
+    #[test]
+    fn count_not_full() {
+        let mut remedian = RemedianBlock::default();
+
+        for v in load_test_data().into_iter() {
+            remedian.add_sample_point(v);
+        }
+
+        assert_eq!(remedian.count(), 2000);
+    }
+
+    #[test]
+    fn count_full() {
+        let mut remedian = RemedianBlock::new(11, 3);
+
+        for v in load_test_data().into_iter() {
+            remedian.add_sample_point(v);
+        }
+
+        assert_eq!(remedian.count(), 1331);
+    }
+}
