@@ -4,7 +4,7 @@ description = " A Rust implementation of The Remedian"
 version = "0.1.0"
 authors = ["Rose Peck"]
 repository = "https://github.com/sixfold-origami/remedian"
-license = "Apache-2.0"
+license = "MIT OR Apache-2.0"
 edition = "2021"
 keywords = ["median", "statistics"]
 
