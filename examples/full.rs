@@ -1,9 +1,5 @@
 //! A more fully-fledged example, showcasing custom confgiuration and other methods on [`RemedianBlock`]
 
-//! A basic example showing minimal usage
-//!
-//! We construct a [`RemedianBlock`], fill it with data, and then read out the approximate median
-
 use remedian::RemedianBlock;
 
 /// Some sample data to calculate the median for
