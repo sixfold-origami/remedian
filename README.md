@@ -9,7 +9,7 @@ let mut remedian = RemedianBlock::default();
 
 // Read data points from our data source, and fold them into the remedian
 for data_point in some_data_stream {
-		remedian.add_sample_point(data_point);
+    remedian.add_sample_point(data_point);
 }
 
 // Get our (approximate) answer
